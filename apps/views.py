@@ -6,20 +6,18 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
-
-from apps.models import UserSession, User
-from apps.serializer import  CreateHomeworkSerializer, UserSerializer, \
-    UserProfileSerializer, TeacherSerializer, StudentSerializer
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, generics, status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 
-from apps.models import Homework, Group, Submission, Grade
+from apps.models import UserSession, User, Homework, Group, Submission, Grade
 from apps.permission import IsAdmin, IsTeacher, IsStudent
-from apps.serializer import HomeworkSerializer, GroupSerializer, SubmissionSerializer, GradeSerializer
+from apps.serializer import (
+    CreateSubmissionSerializer, UserSerializer, UserProfileSerializer,
+    TeacherSerializer, StudentSerializer, HomeworkSerializer,
+    GroupSerializer, SubmissionSerializer, GradeSerializer
+)
+
 
 @extend_schema(tags=['auth'])
 class SessionListView(APIView):
@@ -37,6 +35,8 @@ class SessionListView(APIView):
             })
 
         return Response({"sessions": session_data})
+
+
 @extend_schema(tags=['auth'])
 class SessionDestroyAPIView(DestroyAPIView):
     permission_classes = [IsAuthenticated]
@@ -47,8 +47,14 @@ class SessionDestroyAPIView(DestroyAPIView):
         return self.queryset.filter(user=self.request.user)
 
 
-#TECHERIS
-#_____________________________________________________________________________________________________
+@extend_schema(tags=["auth"], responses=UserProfileSerializer)
+class RegisterCreateAPIView(CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserProfileSerializer
+
+
+# STUDENT VIEWS
+# _____________________________________________________________________________________________________
 @extend_schema(tags=['student'])
 class LeaderBoardListAPIView(ListAPIView):
     serializer_class = UserSerializer
@@ -57,7 +63,7 @@ class LeaderBoardListAPIView(ListAPIView):
         return (
             User.objects
             .filter(role='student')
-            .annotate(total_score=Sum('submission__final_grade'))
+            .annotate(total_score=Sum('submissions__final_grade'))
             .order_by('-total_score')[:10]
         )
 
@@ -75,34 +81,18 @@ class GetStudentHomeworkListAPIView(ListAPIView):
         return Homework.objects.none()
 
 
-
-@extend_schema(tags=['student'])
-class HomeworkCreateAPIView(CreateAPIView):
-    queryset = Homework.objects.all()
-    serializer_class = CreateHomeworkSerializer
-    permission_classes = [IsAuthenticated, IsStudent]
-
-
 @extend_schema(tags=['student'])
 class StudentSubmissionListAPIView(ListAPIView):
-    serializer_class = CreateHomeworkSerializer
+    serializer_class = CreateSubmissionSerializer
     permission_classes = [IsAuthenticated, IsStudent]
 
     def get_queryset(self):
         user = self.request.user
-        qs = Submission.objects.filter(student=user)
-        # print(qs)
-        return qs
+        return Submission.objects.filter(student=user)
 
 
-
-#__________________________________________________________________________________________________________________
-@extend_schema(tags=["auth"], responses=UserProfileSerializer)
-class RegisterCreateAPIView(CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserProfileSerializer
-
-
+# ADMIN/TEACHER MANAGEMENT VIEWS
+# __________________________________________________________________________________________________________________
 @extend_schema(tags=["admin/teacher"])
 class TeacherViewSet(viewsets.ModelViewSet):
     serializer_class = TeacherSerializer
@@ -201,6 +191,8 @@ class GroupViewSet(viewsets.ModelViewSet):
         return Response(leaderboard)
 
 
+# TEACHER VIEWS
+# __________________________________________________________________________________________________________________
 @extend_schema(tags=["teacher"])
 class TeacherHomeworkViewSet(viewsets.ModelViewSet):
     serializer_class = HomeworkSerializer
@@ -268,11 +260,12 @@ class TeacherSubmissionViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-# Student ViewSets
+# STUDENT VIEWSETS
+# __________________________________________________________________________________________________________________
 @extend_schema(tags=["student"])
 class StudentHomeworkViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = HomeworkSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStudent]
 
     def get_queryset(self):
         if self.request.user.group:
@@ -283,7 +276,7 @@ class StudentHomeworkViewSet(viewsets.ReadOnlyModelViewSet):
 @extend_schema(tags=["student"])
 class StudentSubmissionViewSet(viewsets.ModelViewSet):
     serializer_class = SubmissionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStudent]
     http_method_names = ['get', 'post']
 
     def get_queryset(self):

@@ -15,7 +15,7 @@ SECRET_KEY = 'django-insecure-v3q$+@gj-*pvw-m^uu!p*!owe1%i3r9f3j!f4uk7xl%=4v1nq*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -75,8 +75,12 @@ WSGI_APPLICATION = 'root.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'pdpake',  # Ma'lumotlar bazasi nomi
+        'USER': 'postgres',  # PostgreSQL foydalanuvchi nomi
+        'PASSWORD': '1',  # PostgreSQL foydalanuvchi paroli
+        'HOST': 'localhost',  # Agar lokalda ishlatayotgan bo'lsangiz
+        'PORT': '5432',  # PostgreSQL default porti
     }
 }
 

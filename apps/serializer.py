@@ -94,8 +94,6 @@ class StudentSerializer(serializers.ModelSerializer):
         return instance
 
 
-
-
 class GroupSerializer(serializers.ModelSerializer):
     teacher_name = serializers.SerializerMethodField()
     student_count = serializers.ReadOnlyField()
@@ -199,8 +197,10 @@ class UserSerializer(serializers.ModelSerializer):
         return ordered_ids.index(obj.id) + 1
 
 
-class CreateHomeworkSerializer(ModelSerializer):
+# Fixed CreateHomeworkSerializer - was using wrong model
+class CreateSubmissionSerializer(ModelSerializer):
     student_name = SerializerMethodField()
+
     class Meta:
         model = Submission
         fields = (
@@ -209,4 +209,4 @@ class CreateHomeworkSerializer(ModelSerializer):
         )
 
     def get_student_name(self, obj):
-        return obj.student.full_name
+        return obj.student.fullname  # Fixed: was using full_name instead of fullname
